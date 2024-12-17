@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from statsmodels.tsa.seasonal import seasonal_decompose
 import nltk
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 nltk.download('vader_lexicon')
@@ -34,7 +35,7 @@ class HeadlineAnalyzer:
         plt.xlabel('Publisher')
         plt.ylabel('Number of Articles')
         plt.show()
-        
+    
     def publication_freq_plot(self,df):
         # Extract day of the week, hour, and month
         df['day_of_week'] = df['date_only'].dt.day_name()
@@ -112,4 +113,50 @@ class HeadlineAnalyzer:
         plt.title('Sentiment Distribution of Headlines')
         plt.xlabel('Sentiment')
         plt.ylabel('Number of Headlines')
+        plt.show()
+        
+    def time_series_analysis(self,df):
+        # Count headlines per day
+        daily_headlines = df.groupby('date_only').size()
+
+        # Create a DataFrame for time series analysis
+        time_series_data = pd.DataFrame({'Date': daily_headlines.index, 'Headlines_Count': daily_headlines.values})
+        time_series_data.set_index('Date', inplace=True)
+        
+        decomposition = seasonal_decompose(time_series_data['Headlines_Count'], model='additive', period=150)
+
+        # Plotting the components
+        plt.figure(figsize=(14, 20))
+
+        plt.subplot(411)
+        plt.plot(time_series_data['Headlines_Count'], label='Original', color='blue')
+        plt.legend(loc='upper left')
+
+        plt.subplot(412)
+        plt.plot(decomposition.trend, label='Trend', color='orange')
+        plt.legend(loc='upper left')
+
+        plt.subplot(413)
+        plt.plot(decomposition.seasonal, label='Seasonal', color='green')
+        plt.legend(loc='upper left')
+
+        plt.subplot(414)
+        plt.plot(decomposition.resid, label='Residual/Irregular', color='red')
+        plt.legend(loc='upper left')
+
+        plt.tight_layout()
+        plt.show()
+        
+    def hourly_distribution(self,df):
+        df['hour'] = df['time_only'].apply(lambda x: x.hour if pd.notnull(x) else None)
+
+        # Count the number of articles published in each hour
+        hourly_distribution = df['hour'].value_counts().sort_index()
+
+        # Plot the hourly distribution of article publications
+        plt.figure(figsize=(10, 6))
+        hourly_distribution.plot(kind='bar', color='skyblue')
+        plt.title('Hourly Distribution of Article Publications')
+        plt.xlabel('Hour of the Day')
+        plt.ylabel('Number of Articles')
         plt.show()
